@@ -1,4 +1,4 @@
-package dev.bandeira.PG2;
+package dev.bandeira.pg2;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
