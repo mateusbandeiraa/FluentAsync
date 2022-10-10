@@ -1,4 +1,4 @@
-package dev.bandeira.pg2;
+package dev.bandeira.pg2.exemplos;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -10,9 +10,10 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import dev.bandeira.pg2.api.TarefaAssincrona;
 import kong.unirest.Unirest;
 
-public class App {
+public class ExemploWikipedia {
 	public static void main(String[] args) {
 		final String WIKI = "https://pt.wikipedia.org/wiki/";
 
@@ -39,7 +40,7 @@ public class App {
 			verbetesVisitados.add(verbete);
 
 			new TarefaAssincrona<>(getVerbete(verbete)) //
-					.ramificar(App::extrairVerbetes) //
+					.ramificar(ExemploWikipedia::extrairVerbetes) //
 					.filtrar(v -> !verbetesVisitados.contains(v)) //
 					.consumir(fila::offer) //
 					.unificar() //

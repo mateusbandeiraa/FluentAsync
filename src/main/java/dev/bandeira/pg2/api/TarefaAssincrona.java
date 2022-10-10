@@ -1,4 +1,4 @@
-package dev.bandeira.pg2;
+package dev.bandeira.pg2.api;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
