@@ -1,9 +1,10 @@
 package dev.bandeira.pg2.exemplos;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import dev.bandeira.pg2.api.TarefaAssincrona;
 import dev.bandeira.pg2.util.Filme;
 import dev.bandeira.pg2.util.Personagem;
 import dev.bandeira.pg2.util.ResultadosBusca;
@@ -12,8 +13,7 @@ import kong.unirest.Unirest;
 import kong.unirest.UnirestInstance;
 import kong.unirest.jackson.JacksonObjectMapper;
 
-public class ExemploRamificar {
-
+public class ExemploRamificarVanilla {
 	private static final String URI_BASE = "https://swapi.dev/api";
 
 	private static UnirestInstance http;
@@ -23,22 +23,29 @@ public class ExemploRamificar {
 		http.config().defaultBaseUrl(URI_BASE);
 		http.config().setObjectMapper(new JacksonObjectMapper());
 	}
-
+	
 	public static void main(String[] args) {
-		new TarefaAssincrona<>(ExemploRamificar::getAllPeople) //
-		.ramificar(ResultadosBusca::results) //
-		.transformar(personagem -> {
-			var filmes = new TarefaAssincrona<Personagem>(() -> personagem) //
-			.ramificar(Personagem::films) //
-			.transformar(Filme::id)//
-			.transformar(ExemploRamificar::getFilmById) //
-			.aguardar();
-			
-			return personagem.comFilms(filmes);
-		})
-		.unificar() //
-		.consumir(ExemploRamificar::imprimir) //
-		.aguardar();
+		CompletableFuture.supplyAsync(ExemploRamificarVanilla::getAllPeople) //
+		.thenApply(resultadosBusca -> {
+			var futurePersonagens = new ArrayList<CompletableFuture<Personagem>>();
+			for (Personagem personagem : resultadosBusca.results()) {
+				var futurePersonagem = CompletableFuture.supplyAsync(() -> {
+					var futuresFilmes = new ArrayList<CompletableFuture<Filme>>();
+					for (Filme filme : personagem.films()) {
+						var futureFilme = CompletableFuture.supplyAsync(() -> {
+							Integer idFilme = filme.id();
+							return getFilmById(idFilme);
+						});
+						futuresFilmes.add(futureFilme);
+					}
+					
+					return personagem.comFilms(futuresFilmes.stream().map(CompletableFuture::join).toList());
+				});
+				futurePersonagens.add(futurePersonagem);
+			}
+			return futurePersonagens.stream().map(CompletableFuture::join).toList();
+		}).thenAccept(ExemploRamificarVanilla::imprimir)
+		.join();
 	}
 
 	private static ResultadosBusca<Personagem> getAllPeople() {
@@ -57,7 +64,7 @@ public class ExemploRamificar {
 		}
 		return httpResponse.getBody();
 	}
-
+	
 	private static void imprimir(List<Personagem> resultados) {
 
 		var formato = "| %25s | %-120s |\n";
