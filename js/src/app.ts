@@ -5,17 +5,21 @@ const wait = (ms: number) => {
 };
 
 const tarefa = new TarefaAssincrona(async () => {
-  await wait(1500);
+  await wait(1000);
   return "Hello World!";
 });
 
 async function main(): Promise<void> {
+  console.time();
   await tarefa
-    .ramificar((s) => s.split(""))
-    .transformar((s) => s.toUpperCase())
-    .unificar((chars) => chars.join(""))
+    .consumir(console.log)
+    .transformar(async (s) => {
+      await wait(1000);
+      return s += "😀";
+    })
     .consumir(console.log)
     .obterPromise();
+    console.timeEnd();
 }
 
 main().catch(console.error);

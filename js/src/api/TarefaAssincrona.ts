@@ -2,18 +2,18 @@ import TarefaRamificada from "./TarefaRamificada.js";
 
 export default class TarefaAssincrona<T> {
   tarefa: Promise<T>;
-  constructor(tarefa: Promise<T> | (() => Promise<T>) | (() => T)) {
+  constructor(tarefa: Promise<T> | (() => Promise<T>) |(() => T) | T) {
     if (tarefa instanceof Promise<T>) {
       this.tarefa = tarefa;
-    } else {
-      const a = tarefa();
-      if (a instanceof Promise) {
-        this.tarefa = a;
+    } else if (tarefa instanceof Function) {
+      const retorno = tarefa();
+      if(retorno instanceof Promise<T>){
+        this.tarefa = retorno;
       } else {
-        this.tarefa = new Promise((resolve) => {
-          resolve(a);
-        });
+        this.tarefa = new Promise((resolve) => resolve(retorno));
       }
+    } else {
+      this.tarefa = new Promise((resolve) => resolve(tarefa));
     }
   }
 
@@ -21,15 +21,17 @@ export default class TarefaAssincrona<T> {
     return this.tarefa;
   }
 
-  transformar<U>(transformadora: (value: T) => U | PromiseLike<U>) {
+  transformar<U>(transformadora: (value: T) => U): TarefaAssincrona<U> {
     return new TarefaAssincrona(this.tarefa.then(transformadora));
   }
 
-  consumir(consumidora: (value: T) => void) {
-    return new TarefaAssincrona(async () => {
-      consumidora(await this.tarefa);
-      return this;
-    })
+  consumir(consumidora: (value: T) => void): TarefaAssincrona<T> {
+    return new TarefaAssincrona(
+      this.tarefa.then((val) => {
+        consumidora(val);
+        return val;
+      })
+    );
   }
 
   ramificar<U>(funcaoRamificadora: (a: T) => Array<U>): TarefaRamificada<U> {
