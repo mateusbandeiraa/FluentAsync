@@ -1,4 +1,4 @@
-import TarefaAssincrona from "./api/TarefaAssincrona";
+import TarefaAssincrona from "./api/TarefaAssincrona.js";
 
 const wait = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));

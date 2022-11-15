@@ -1,4 +1,4 @@
-import TarefaAssincrona from "./TarefaAssincrona";
+import TarefaAssincrona from "./TarefaAssincrona.js";
 
 export default class TarefaRamificada<R> {
   futurosRamos: TarefaAssincrona<Array<TarefaAssincrona<R>>>;

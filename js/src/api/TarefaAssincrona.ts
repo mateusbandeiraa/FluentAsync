@@ -1,4 +1,4 @@
-import TarefaRamificada from "./TarefaRamificada";
+import TarefaRamificada from "./TarefaRamificada.js";
 
 export default class TarefaAssincrona<T> {
   tarefa: Promise<T>;
