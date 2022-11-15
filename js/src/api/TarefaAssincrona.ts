@@ -2,12 +2,12 @@ import TarefaRamificada from "./TarefaRamificada.js";
 
 export default class TarefaAssincrona<T> {
   tarefa: Promise<T>;
-  constructor(tarefa: Promise<T> | (() => Promise<T>) |(() => T) | T) {
+  constructor(tarefa: Promise<T> | (() => Promise<T>) | (() => T) | T) {
     if (tarefa instanceof Promise<T>) {
       this.tarefa = tarefa;
     } else if (tarefa instanceof Function) {
       const retorno = tarefa();
-      if(retorno instanceof Promise<T>){
+      if (retorno instanceof Promise<T>) {
         this.tarefa = retorno;
       } else {
         this.tarefa = new Promise((resolve) => resolve(retorno));

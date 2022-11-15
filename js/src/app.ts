@@ -1,3 +1,5 @@
+import fetch from "node-fetch";
+import https from "https";
 import TarefaAssincrona from "./api/TarefaAssincrona.js";
 
 const wait = (ms: number) => {
@@ -9,16 +11,61 @@ const tarefa = new TarefaAssincrona(async () => {
   return "Hello World!";
 });
 
+const agent = new https.Agent({ rejectUnauthorized: false });
+
+type Personagem = {
+  id: Number;
+  name: String;
+  films: Filme[] | String;
+};
+
+type Filme = {
+  id: Number;
+  title: String;
+};
+
 async function main(): Promise<void> {
   console.time();
-  await tarefa
-    .consumir(console.log)
-    .ramificar(s => s.split(""))
-    .consumir(console.log)
-    .unificar(s => s.join(""))
-    .consumir(console.log)
-    .obterPromise();
-    console.timeEnd();
+  const dados = (await new TarefaAssincrona(async () => {
+    return await buscarPersonagens();
+  })
+    .ramificar((personagens) => personagens)
+    .transformar(async (personagem) => {
+      const filmesAnterior = personagem.films as unknown as String[];
+      const novosFilmes = (await new TarefaAssincrona(filmesAnterior)
+        .ramificar((filmes) => filmes)
+        .transformar(async (urlFilme) => await buscarFilme(urlFilme))
+        .unificar()
+        .obterPromise()) as Filme[];
+
+      personagem.films = novosFilmes;
+
+      return personagem;
+    })
+    .unificar()
+    .obterPromise()) as Personagem[];
+  console.timeEnd();
+
+  console.table(
+    dados.map((personagem) => ({
+      nome: personagem.name,
+      filmes: (personagem.films as Filme[])
+        .map((filme) => filme.title)
+        .join("; "),
+    }))
+  );
 }
+
+const buscarPersonagens = (): Promise<Personagem[]> => {
+  return fetch("https://swapi.dev/api/people", { agent })
+    .then((res) => res.json() as any)
+    .then((json) => json.results as Personagem[]);
+};
+
+const buscarFilme = (urlFilme: String): Promise<Filme> => {
+  return fetch("" + urlFilme, { agent }).then(
+    (res) => res.json() as unknown as Filme
+  );
+};
 
 main().catch(console.error);
