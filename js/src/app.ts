@@ -13,10 +13,9 @@ async function main(): Promise<void> {
   console.time();
   await tarefa
     .consumir(console.log)
-    .transformar(async (s) => {
-      await wait(1000);
-      return s += "😀";
-    })
+    .ramificar(s => s.split(""))
+    .consumir(console.log)
+    .unificar(s => s.join(""))
     .consumir(console.log)
     .obterPromise();
     console.timeEnd();

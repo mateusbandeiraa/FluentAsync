@@ -1,68 +1,55 @@
 import TarefaAssincrona from "./TarefaAssincrona.js";
 
 export default class TarefaRamificada<R> {
-  futurosRamos: TarefaAssincrona<Array<TarefaAssincrona<R>>>;
+  ramos: TarefaAssincrona<TarefaAssincrona<R>[]>;
 
-  private constructor(
-    futurosRamos: TarefaAssincrona<Array<TarefaAssincrona<R>>>
-  ) {
-    this.futurosRamos = futurosRamos;
+  private constructor(ramos: TarefaAssincrona<TarefaAssincrona<R>[]>) {
+    this.ramos = ramos;
   }
 
   static instanciar<U, R>(
     tarefaOriginal: TarefaAssincrona<U>,
     funcaoRamificadora: (a: U) => Array<R>
-  ) {
+  ): TarefaRamificada<R> {
     const futurosRamos = tarefaOriginal
       .transformar(funcaoRamificadora)
       .transformar((valores) =>
-        valores.map((valor) => new TarefaAssincrona(() => valor))
+        valores.map((valor) => new TarefaAssincrona(valor))
       );
     return new TarefaRamificada(futurosRamos);
   }
 
   obterPromise() {
-    return this.futurosRamos;
+    return this.ramos;
   }
 
   transformar<U>(transformadora: (value: R) => U): TarefaRamificada<U> {
     return new TarefaRamificada(
-      this.futurosRamos.transformar((ramos) => {
+      this.ramos.transformar((ramos) => {
         return ramos.map((ramo) => ramo.transformar(transformadora));
       })
     );
   }
 
-  consumir<U>(
-    consumidora: (value: R) => U
-  ): TarefaRamificada<TarefaAssincrona<R>> {
+  consumir<U>(consumidora: (value: R) => U): TarefaRamificada<R> {
     return new TarefaRamificada(
-      this.futurosRamos.transformar((ramos) => {
+      this.ramos.transformar((ramos) => {
         return ramos.map((ramo) => ramo.consumir(consumidora));
       })
     );
   }
 
-  unificar<U>(funcaoUnificadora?: (values: Array<R>) => U) {
-    if (funcaoUnificadora) {
-      return this.futurosRamos
-        .transformar(async (ramos) => {
-          return await ramos.map(async (ramo) => await ramo.obterPromise());
-        })
-        .transformar(
-          async (ramos) =>
-            await Promise.all(ramos).then((results) =>
-              funcaoUnificadora(results)
-            )
-        );
+  unificar<U>(funcaoUnificadora?: ((valores: R[]) => U)): TarefaAssincrona<R[]> | TarefaAssincrona<U> {
+    const tarefaUnificada = new TarefaAssincrona(async () => {
+      return await this.ramos
+        .transformar((ramos) => ramos.map((ramo) => ramo.obterPromise()))
+        .transformar((promises) => Promise.all(promises))
+        .obterPromise();
+    });
+    if(!funcaoUnificadora){
+      return tarefaUnificada;
     } else {
-      return this.futurosRamos
-        .transformar(async (ramos) => {
-          return await ramos.map(async (ramo) => await ramo.obterPromise());
-        })
-        .transformar(
-          async (ramos) => await Promise.all(ramos).then((results) => results)
-        );
+      return tarefaUnificada.transformar(funcaoUnificadora);
     }
   }
 }
