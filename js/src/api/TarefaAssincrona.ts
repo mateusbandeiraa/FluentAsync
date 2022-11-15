@@ -33,6 +33,6 @@ export default class TarefaAssincrona<T> {
   }
 
   ramificar<U>(funcaoRamificadora: (a: T) => Array<U>): TarefaRamificada<U> {
-    return new TarefaRamificada({tarefaOriginal: this, funcaoRamificadora});
+    return TarefaRamificada.instanciar(this, funcaoRamificadora);
   }
 }

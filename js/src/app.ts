@@ -16,7 +16,6 @@ async function main(): Promise<void> {
     .unificar((chars) => chars.join(""))
     .consumir(console.log)
     .obterPromise();
-  //   console.log(await tarefa.transformar(s => s.toUpperCase()).aguardar());
 }
 
 main().catch(console.error);
