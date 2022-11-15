@@ -20,7 +20,7 @@ export default class TarefaRamificada<R> {
   }
 
   obterPromise() {
-    return this.ramos;
+    return this.ramos.obterPromise();
   }
 
   transformar<U>(transformadora: (value: R) => U): TarefaRamificada<U> {
