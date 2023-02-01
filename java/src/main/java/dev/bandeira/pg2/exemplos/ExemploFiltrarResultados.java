@@ -1,51 +1,34 @@
 package dev.bandeira.pg2.exemplos;
 
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import dev.bandeira.pg2.api.TarefaAssincrona;
-import dev.bandeira.pg2.util.Personagem;
 import dev.bandeira.pg2.util.ResultadosBusca;
-import kong.unirest.GenericType;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestInstance;
-import kong.unirest.jackson.JacksonObjectMapper;
 
 public class ExemploFiltrarResultados {
 
-	private static final String URI_BASE = "https://swapi.dev/api";
+ public static void executarVanilla() {
+  CompletableFuture.supplyAsync(Utils::getAllPeople)
+    .thenApply(ResultadosBusca::results)
+    .thenApply(personagens -> {
+     personagens.removeIf(personagem -> personagem.films().size() < 3);
+     return personagens;
+    })
+    .thenAccept(Utils::imprimirPersonagensENumeroFilmes)
+    .join();
+ }
 
-	private static UnirestInstance http;
+ public static void executarFluentAsync() {
+  new TarefaAssincrona<>(Utils::getAllPeople)
+    .ramificar(ResultadosBusca::results)
+    .filtrar(personagem -> personagem.films().size() >= 3)
+    .unificar()
+    .consumir(Utils::imprimirPersonagensENumeroFilmes)
+    .aguardar();
+ }
 
-	static {
-		http = Unirest.spawnInstance();
-		http.config().defaultBaseUrl(URI_BASE);
-		http.config().setObjectMapper(new JacksonObjectMapper());
-	}
-
-	public static void main(String[] args) {
-		new TarefaAssincrona<>(() -> {
-			var httpResponse = http.get("/people").asObject(new GenericType<ResultadosBusca<Personagem>>() {
-			});
-			if (httpResponse.getParsingError().isPresent()) {
-				throw httpResponse.getParsingError().get();
-			}
-			return httpResponse.getBody();
-		}) //
-		.ramificar(ResultadosBusca::results) //
-		.filtrar(personagem -> personagem.films().size() >= 3) //
-		.unificar() //
-		.consumir(ExemploFiltrarResultados::imprimir) //
-		.aguardar();
-	}
-
-	private static void imprimir(List<Personagem> resultados) {
-
-		var formato = "| %25s | %10s |\n";
-		
-		System.out.printf(formato, "Nome", "# filmes");
-		
-		for (Personagem personagem : resultados) {
-			System.out.printf(formato, personagem.name(), personagem.films().size());
-		}
-	}
+ public static void main(String[] args) {
+  executarVanilla();
+  executarFluentAsync();
+ }
 }

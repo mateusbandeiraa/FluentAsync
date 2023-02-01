@@ -1,72 +1,72 @@
 package dev.bandeira.pg2.exemplos;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 
 import dev.bandeira.pg2.api.TarefaAssincrona;
 import dev.bandeira.pg2.util.Filme;
 import dev.bandeira.pg2.util.Personagem;
 import dev.bandeira.pg2.util.ResultadosBusca;
-import kong.unirest.GenericType;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestInstance;
-import kong.unirest.jackson.JacksonObjectMapper;
 
 public class ExemploRamificar {
 
-	private static final String URI_BASE = "https://swapi.dev/api";
+ public static void executarVanilla() {
+  CompletableFuture.supplyAsync(Utils::getAllPeople)
+    .thenApply(resultadosBusca -> {
+     var futurePersonagens =
+       new ArrayList<CompletableFuture<Personagem>>();
 
-	private static UnirestInstance http;
+     for (Personagem personagem : resultadosBusca.results()) //
+     {
+      var futurePersonagem =
+        CompletableFuture.supplyAsync(() -> {
+         var futuresFilmes =
+           new ArrayList<CompletableFuture<Filme>>();
+         
+         for (Filme filme : personagem.films()) {
+          var futureFilme =
+            CompletableFuture.supplyAsync(() -> {
+             Integer idFilme = filme.id();
+             return Utils.getFilmById(idFilme);
+            });
+          futuresFilmes.add(futureFilme);
+         }
 
-	static {
-		http = Unirest.spawnInstance();
-		http.config().defaultBaseUrl(URI_BASE);
-		http.config().setObjectMapper(new JacksonObjectMapper());
-	}
+         return personagem.comFilms(
+           futuresFilmes.stream()
+             .map(CompletableFuture::join)
+             .toList());
+        });
+      futurePersonagens.add(futurePersonagem);
+     }
+     return futurePersonagens.stream()
+       .map(CompletableFuture::join)
+       .toList();
+    })
+    .thenAccept(Utils::imprimirPersonagensETitulosFilmes)
+    .join();
+ }
 
-	public static void main(String[] args) {
-		new TarefaAssincrona<>(ExemploRamificar::getAllPeople) //
-		.ramificar(ResultadosBusca::results) //
-		.transformar(personagem -> {
-			var filmes = new TarefaAssincrona<Personagem>(() -> personagem) //
-			.ramificar(Personagem::films) //
-			.transformar(Filme::id)//
-			.transformar(ExemploRamificar::getFilmById) //
-			.aguardar();
-			
-			return personagem.comFilms(filmes);
-		})
-		.unificar() //
-		.consumir(ExemploRamificar::imprimir) //
-		.aguardar();
-	}
+ public static void executarFluentAsync() {
+  new TarefaAssincrona<>(Utils::getAllPeople)
+    .ramificar(ResultadosBusca::results)
+    .transformar(personagem -> {
+     var filmes =
+       new TarefaAssincrona<Personagem>(() -> personagem)
+         .ramificar(Personagem::films)
+         .transformar(Filme::id)
+         .transformar(Utils::getFilmById)
+         .aguardar();
 
-	private static ResultadosBusca<Personagem> getAllPeople() {
-		var httpResponse = http.get("/people").asObject(new GenericType<ResultadosBusca<Personagem>>() {
-		});
-		if (httpResponse.getParsingError().isPresent()) {
-			throw httpResponse.getParsingError().get();
-		}
-		return httpResponse.getBody();
-	}
+     return personagem.comFilms(filmes);
+    })
+    .unificar()
+    .consumir(Utils::imprimirPersonagensETitulosFilmes)
+    .aguardar();
+ }
 
-	private static Filme getFilmById(Integer idFilme) {
-		var httpResponse = http.get("/films/{id}").routeParam("id", String.valueOf(idFilme)).asObject(Filme.class);
-		if (httpResponse.getParsingError().isPresent()) {
-			throw httpResponse.getParsingError().get();
-		}
-		return httpResponse.getBody();
-	}
-
-	private static void imprimir(List<Personagem> resultados) {
-
-		var formato = "| %25s | %-120s |\n";
-
-		System.out.printf(formato, "Nome", "Filmes");
-
-		for (Personagem personagem : resultados) {
-			var filmes = personagem.films().stream().map(Filme::title).collect(Collectors.joining("; "));
-			System.out.printf(formato, personagem.name(), filmes);
-		}
-	}
+ public static void main(String[] args) {
+  executarFluentAsync();
+  executarVanilla();
+ }
 }
