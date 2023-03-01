@@ -1,4 +1,4 @@
-package dev.bandeira.pg2.api;
+package dev.bandeira.fluentasync;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -29,11 +29,13 @@ public class TarefaAssincrona<T> {
 		return new TarefaAssincrona<>(tarefa.thenApplyAsync(transformadora));
 	}
 
-	public <U> TarefaRamificada<U> ramificar(Function<T, List<U>> funcaoRamificadora) {
+	public <U> TarefaRamificada<U> ramificar(
+			Function<T, List<U>> funcaoRamificadora) {
 		return new TarefaRamificada<>(this, funcaoRamificadora);
 	}
 
-	public TarefaAssincrona<T> casoErro(Function<Throwable, ? extends T> casoErro) {
+	public TarefaAssincrona<T> casoErro(
+			Function<Throwable, ? extends T> casoErro) {
 		return new TarefaAssincrona<>(tarefa.exceptionally(casoErro));
 	}
 

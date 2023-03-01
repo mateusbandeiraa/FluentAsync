@@ -2,7 +2,9 @@ import TarefaRamificada from "./TarefaRamificada.js";
 
 export default class TarefaAssincrona<T> {
   tarefa: Promise<T>;
-  constructor(tarefa: Promise<T> | (() => Promise<T>) | (() => T) | T) {
+  constructor(
+    tarefa: Promise<T> | (() => Promise<T>) | (() => T) | T
+  ) {
     if (tarefa instanceof Promise<T>) {
       this.tarefa = tarefa;
     } else if (tarefa instanceof Function) {
@@ -10,10 +12,14 @@ export default class TarefaAssincrona<T> {
       if (retorno instanceof Promise<T>) {
         this.tarefa = retorno;
       } else {
-        this.tarefa = new Promise((resolve) => resolve(retorno));
+        this.tarefa = new Promise((resolve) =>
+          resolve(retorno)
+        );
       }
     } else {
-      this.tarefa = new Promise((resolve) => resolve(tarefa));
+      this.tarefa = new Promise((resolve) =>
+        resolve(tarefa)
+      );
     }
   }
 
@@ -21,11 +27,17 @@ export default class TarefaAssincrona<T> {
     return this.tarefa;
   }
 
-  transformar<U>(transformadora: (value: T) => U): TarefaAssincrona<U> {
-    return new TarefaAssincrona(this.tarefa.then(transformadora));
+  transformar<U>(
+    transformadora: (value: T) => U
+  ): TarefaAssincrona<U> {
+    return new TarefaAssincrona(
+      this.tarefa.then(transformadora)
+    );
   }
 
-  consumir(consumidora: (value: T) => void): TarefaAssincrona<T> {
+  consumir(
+    consumidora: (value: T) => void
+  ): TarefaAssincrona<T> {
     return new TarefaAssincrona(
       this.tarefa.then((val) => {
         consumidora(val);
@@ -34,7 +46,12 @@ export default class TarefaAssincrona<T> {
     );
   }
 
-  ramificar<U>(funcaoRamificadora: (a: T) => Array<U>): TarefaRamificada<U> {
-    return TarefaRamificada.instanciar(this, funcaoRamificadora);
+  ramificar<U>(
+    funcaoRamificadora: (a: T) => Array<U>
+  ): TarefaRamificada<U> {
+    return TarefaRamificada.instanciar(
+      this,
+      funcaoRamificadora
+    );
   }
 }

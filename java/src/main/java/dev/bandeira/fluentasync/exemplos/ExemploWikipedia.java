@@ -1,4 +1,4 @@
-package dev.bandeira.pg2.exemplos;
+package dev.bandeira.fluentasync.exemplos;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import dev.bandeira.pg2.api.TarefaAssincrona;
+import dev.bandeira.fluentasync.TarefaAssincrona;
 import kong.unirest.Unirest;
 
 public class ExemploWikipedia {
@@ -19,7 +19,7 @@ public class ExemploWikipedia {
 
 		Unirest.config().defaultBaseUrl(WIKI);
 
-		final String verbeteInicial = "Pirelli";
+		final String verbeteInicial = "Autódromo_de_Interlagos";
 		final String verbeteFinal = "Ayrton_Senna";
 
 		final Queue<String> fila = new LinkedList<>();
@@ -33,7 +33,8 @@ public class ExemploWikipedia {
 			if (verbetesVisitados.contains(verbete)) {
 				continue;
 			} else if (verbete.equalsIgnoreCase(verbeteFinal)) {
-				System.out.println("Encontrei o verbete final em %d iterações.".formatted(iteracoes));
+				System.out.println("Encontrei o verbete final em %d iterações."
+						.formatted(iteracoes));
 				break;
 			}
 
@@ -46,7 +47,7 @@ public class ExemploWikipedia {
 					.unificar() //
 					.aguardar(); //
 
-			if(iteracoes == 1000) {
+			if (iteracoes == 1000) {
 				break;
 			}
 			iteracoes++;
